@@ -590,7 +590,7 @@
         
         async function tryResolveLatestBet() {
             // Get the latest bet ID
-            const nextBetData = '0x9fab49f1'; // nextBetId()
+            const nextBetData = '0x9aca2792'; // nextBetId()
             const result = await fetch(MONAD_RPC, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -635,7 +635,7 @@
         }
         
         async function checkBetResult(betId) {
-            const getBetData = '0x74deb0e4' + // getBet(uint256)
+            const getBetData = '0x061e494f' + // getBet(uint256)
                 betId.toString(16).padStart(64, '0');
             
             const result = await fetch(MONAD_RPC, {
