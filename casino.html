@@ -441,27 +441,52 @@
             const amountWei = '0x' + (BigInt(Math.floor(amount * 1e18))).toString(16);
             const btn = document.getElementById('bet-btn');
             btn.disabled = true;
-            btn.innerHTML = '<span class="loading"></span> Approving...';
             
             try {
-                // First approve
-                const approveData = '0x095ea7b3' + 
-                    CASINO_CONTRACT.slice(2).padStart(64, '0') +
-                    amountWei.slice(2).padStart(64, '0');
+                // Check current allowance
+                const allowanceData = '0xdd62ed3e' + 
+                    userAddress.slice(2).toLowerCase().padStart(64, '0') +
+                    CASINO_CONTRACT.slice(2).toLowerCase().padStart(64, '0');
                 
-                await window.ethereum.request({
-                    method: 'eth_sendTransaction',
-                    params: [{
-                        from: userAddress,
-                        to: DONUT_TOKEN,
-                        data: approveData
-                    }]
-                });
+                const allowanceResult = await fetch(MONAD_RPC, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        method: 'eth_call',
+                        params: [{ to: DONUT_TOKEN, data: allowanceData }, 'latest'],
+                        id: 1
+                    })
+                }).then(r => r.json());
+                
+                const currentAllowance = BigInt(allowanceResult.result || '0x0');
+                const betAmount = BigInt(Math.floor(amount * 1e18));
+                
+                // Only approve if needed (one-time max approval)
+                if (currentAllowance < betAmount) {
+                    btn.innerHTML = '<span class="loading"></span> Approving (one-time)...';
+                    const maxApproval = 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+                    const approveData = '0x095ea7b3' + 
+                        CASINO_CONTRACT.slice(2).padStart(64, '0') +
+                        maxApproval;
+                    
+                    const approveTx = await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [{
+                            from: userAddress,
+                            to: DONUT_TOKEN,
+                            data: approveData
+                        }]
+                    });
+                    
+                    // Wait for approval to confirm
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                }
                 
                 btn.innerHTML = '<span class="loading"></span> Placing bet...';
                 
-                // Then bet
-                const betData = '0x6f4c5a1c' + // bet(uint256,bool)
+                // Place bet
+                const betData = '0x9a6d3aaa' + // bet(uint256,bool)
                     amountWei.slice(2).padStart(64, '0') +
                     (selectedChoice ? '1' : '0').padStart(64, '0');
                 
@@ -520,7 +545,7 @@
         
         async function resolveBet(betId) {
             try {
-                const resolveData = '0xb0ea0822' + // resolve(uint256)
+                const resolveData = '0x4f896d4f' + // resolve(uint256)
                     betId.toString(16).padStart(64, '0');
                 
                 const txHash = await window.ethereum.request({
