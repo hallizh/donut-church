@@ -91,6 +91,18 @@
         .status-dot.connected { background: var(--green); }
         .status-dot.holder { background: var(--gold); }
         
+        .btn-disconnect {
+            background: rgba(248, 113, 113, 0.2);
+            color: var(--red);
+            border: 1px solid var(--red);
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+        }
+        
+        .btn-disconnect:hover {
+            background: rgba(248, 113, 113, 0.3);
+        }
+        
         .btn {
             display: inline-flex;
             align-items: center;
@@ -298,7 +310,7 @@
                 }
                 
                 updateStatus('connected', `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`);
-                document.getElementById('wallet-address').textContent = userAddress;
+                document.getElementById('wallet-address').innerHTML = `${userAddress} <button class="btn btn-disconnect" onclick="disconnectWallet()">Disconnect</button>`;
                 
                 // Check DONUT balance
                 await checkBalance();
@@ -434,6 +446,21 @@
             
             dot.className = 'status-dot ' + status;
             statusText.textContent = text;
+        }
+        
+        function disconnectWallet() {
+            userAddress = null;
+            donutBalance = 0;
+            updateStatus('', 'Not connected');
+            document.getElementById('wallet-address').textContent = '';
+            document.getElementById('balance-area').style.display = 'none';
+            document.getElementById('prophecy-area').style.display = 'none';
+            document.getElementById('prophecy-area').innerHTML = '';
+            document.getElementById('action-area').innerHTML = `
+                <button class="btn btn-primary" id="connect-btn" onclick="connectWallet()">
+                    🔗 Connect Wallet
+                </button>
+            `;
         }
         
         function showError(message) {
