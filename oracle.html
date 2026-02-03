@@ -270,9 +270,16 @@
         let signer = null;
         let userAddress = null;
         let donutBalance = 0;
+        let walletConnectInFlight = false;
         
         async function connectWallet() {
             const btn = document.getElementById('connect-btn');
+            if (walletConnectInFlight) {
+                showError('Wallet connect already pending. Please check MetaMask.');
+                return;
+            }
+            walletConnectInFlight = true;
+
             btn.disabled = true;
             btn.innerHTML = '<span class="loading"></span> Connecting...';
             
@@ -280,11 +287,13 @@
                 if (!window.ethereum) {
                     throw new Error("No wallet found. Please install MetaMask or another Web3 wallet.");
                 }
-                
-                // Request accounts
-                const accounts = await window.ethereum.request({ 
-                    method: 'eth_requestAccounts' 
-                });
+
+                // If already authorized, avoid triggering the MetaMask permission flow twice.
+                let accounts = [];
+                try { accounts = await window.ethereum.request({ method: 'eth_accounts' }); } catch {}
+                if (!accounts || accounts.length === 0) {
+                    accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                }
                 userAddress = accounts[0];
                 
                 // Try to switch to Monad mainnet
@@ -319,6 +328,8 @@
                 showError(error.message);
                 btn.disabled = false;
                 btn.innerHTML = '🔗 Connect Wallet';
+            } finally {
+                walletConnectInFlight = false;
             }
         }
         

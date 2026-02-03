@@ -492,6 +492,7 @@
 
         // Wallet state
         let connectedWallet = null;
+        let walletConnectInFlight = false;
 
         function setWalletStatus(text) {
             document.getElementById('wallet-status').textContent = text;
@@ -502,12 +503,34 @@
                 alert('No wallet detected. Install MetaMask or use a wallet-enabled browser.');
                 return;
             }
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            connectedWallet = accounts?.[0] || null;
-            if (!connectedWallet) {
-                setWalletStatus('Not connected');
-            } else {
-                setWalletStatus('Connected: ' + connectedWallet.slice(0, 6) + '…' + connectedWallet.slice(-4));
+            if (walletConnectInFlight) {
+                // MetaMask Mobile error: wallet_requestPermissions already pending
+                alert('Wallet connect already pending. Please check MetaMask and approve the request.');
+                return;
+            }
+
+            walletConnectInFlight = true;
+            const btn = document.getElementById('connect-btn');
+            const old = btn?.textContent;
+            if (btn) { btn.disabled = true; btn.textContent = 'Connecting…'; }
+
+            try {
+                // If already authorized, don’t re-trigger permission flow.
+                let accounts = [];
+                try { accounts = await window.ethereum.request({ method: 'eth_accounts' }); } catch {}
+                if (!accounts || accounts.length === 0) {
+                    accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                }
+
+                connectedWallet = accounts?.[0] || null;
+                if (!connectedWallet) {
+                    setWalletStatus('Not connected');
+                } else {
+                    setWalletStatus('Connected: ' + connectedWallet.slice(0, 6) + '…' + connectedWallet.slice(-4));
+                }
+            } finally {
+                walletConnectInFlight = false;
+                if (btn) { btn.disabled = false; btn.textContent = old || '🔌 Connect Wallet'; }
             }
         }
 

@@ -352,15 +352,30 @@
         let userAddress = null;
         let selectedChoice = null;
         let pendingBets = [];
+        let walletConnectInFlight = false;
         
         async function connectWallet() {
+            if (walletConnectInFlight) {
+                alert('Wallet connect already pending. Please check MetaMask.');
+                return;
+            }
+
+            walletConnectInFlight = true;
+            const btn = document.getElementById('connect-btn');
+            const old = btn?.textContent;
+            if (btn) { btn.disabled = true; btn.textContent = 'Connecting…'; }
+
             try {
                 if (!window.ethereum) {
                     alert("Please install MetaMask or another Web3 wallet");
                     return;
                 }
-                
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+                let accounts = [];
+                try { accounts = await window.ethereum.request({ method: 'eth_accounts' }); } catch {}
+                if (!accounts || accounts.length === 0) {
+                    accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                }
                 userAddress = accounts[0];
                 
                 // Switch to Monad
@@ -392,6 +407,9 @@
             } catch (error) {
                 console.error(error);
                 alert("Connection failed: " + error.message);
+            } finally {
+                walletConnectInFlight = false;
+                if (btn) { btn.disabled = false; btn.textContent = old || 'Connect Wallet'; }
             }
         }
         
