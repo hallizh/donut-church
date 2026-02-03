@@ -324,18 +324,22 @@
         
         async function checkBalance() {
             try {
-                // Use eth_call to check balance
-                const data = '0x70a08231000000000000000000000000' + userAddress.slice(2).padStart(64, '0');
+                // Use direct RPC call to Monad mainnet (don't rely on wallet's current chain)
+                const data = '0x70a08231000000000000000000000000' + userAddress.slice(2).toLowerCase();
                 
-                const result = await window.ethereum.request({
-                    method: 'eth_call',
-                    params: [{
-                        to: DONUT_TOKEN,
-                        data: data
-                    }, 'latest']
+                const response = await fetch(MONAD_RPC, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        method: 'eth_call',
+                        params: [{ to: DONUT_TOKEN, data: data }, 'latest'],
+                        id: 1
+                    })
                 });
                 
-                donutBalance = parseInt(result, 16) / 1e18;
+                const json = await response.json();
+                donutBalance = parseInt(json.result, 16) / 1e18;
                 
                 document.getElementById('balance-area').style.display = 'block';
                 document.getElementById('donut-balance').textContent = donutBalance.toLocaleString(undefined, {maximumFractionDigits: 2});
