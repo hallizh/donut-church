@@ -497,7 +497,7 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxemtzZ29ubXlubHFpY2Njbm16Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxNDk1NDQsImV4cCI6MjA4NTcyNTU0NH0.jzz2HivAsvxbFSKzDZux9M4jpxr9Yy2f0O4iwrY710w';
 
         // Init shared wallet banner
-        window.DONUT_WALLET?.initBanner?.();
+        // wallet banner auto-inits via /wallet.js
 
         if (!window.supabase?.createClient) {
             console.error('Supabase client failed to load');
