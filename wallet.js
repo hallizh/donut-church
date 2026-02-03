@@ -62,12 +62,7 @@
     }
   }
 
-  let inited = false;
-
   function initBanner() {
-    if (inited) return;
-    inited = true;
-
     const run = () => {
       console.log('[DONUT_WALLET] initBanner');
 
