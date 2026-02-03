@@ -389,7 +389,7 @@
             </div>
             
             <div class="form-group" style="text-align:center;">
-                <button type="button" class="btn" id="connect-btn">🔌 Connect Wallet</button>
+                <button type="button" class="btn" id="connect-btn" onclick="connectWallet()">🔌 Connect Wallet</button>
                 <div style="margin-top:0.75rem; opacity:0.85;">
                     <span id="wallet-status">Not connected</span>
                 </div>
@@ -487,8 +487,14 @@
         const SUPABASE_URL = 'https://rqzksgonmynlqicccnmz.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxemtzZ29ubXlubHFpY2Njbm16Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxNDk1NDQsImV4cCI6MjA4NTcyNTU0NH0.jzz2HivAsvxbFSKzDZux9M4jpxr9Yy2f0O4iwrY710w';
 
-        const { createClient } = window.supabase;
-        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Supabase client (optional for wallet connect)
+        let supabase = null;
+        if (window.supabase?.createClient) {
+            const { createClient } = window.supabase;
+            supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        } else {
+            console.error('Supabase failed to load; bounty list/posting will be unavailable until it loads.');
+        }
 
         // Wallet state
         let connectedWallet = null;
@@ -534,14 +540,7 @@
             }
         }
 
-        document.getElementById('connect-btn').addEventListener('click', async () => {
-            try {
-                await connectWallet();
-            } catch (e) {
-                console.error(e);
-                alert('Wallet connection failed: ' + (e?.message || e));
-            }
-        });
+        // connect handled via inline onclick on the button (more reliable in mobile webviews)
 
         if (window.ethereum) {
             // Refresh UI on account changes
@@ -610,6 +609,10 @@
 
         async function loadBounties() {
             const listEl = document.getElementById('bounty-list');
+            if (!supabase) {
+                listEl.innerHTML = '<p style="opacity:0.8;">Bounties temporarily unavailable (Supabase failed to load). Try refreshing.</p>';
+                return;
+            }
             const completedEl = document.getElementById('completed-list');
 
             listEl.innerHTML = '<div class="empty-state"><p>Loading quests from the sacred vault…</p></div>';
@@ -700,7 +703,10 @@
                 };
 
                 // Call Edge Function (no direct DB insert from browser)
-                const { data, error } = await supabase.functions.invoke('bounties-create', { body: payload });
+                if (!supabase) {
+                throw new Error('Supabase failed to load. Please refresh and try again.');
+            }
+            const { data, error } = await supabase.functions.invoke('bounties-create', { body: payload });
                 if (error) throw error;
                 if (!data?.success) throw new Error(data?.error || 'Unknown error');
 
