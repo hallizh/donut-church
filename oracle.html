@@ -279,7 +279,7 @@
                 try {
                     await window.ethereum.request({
                         method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: '0x279F' }], // Monad mainnet chain ID
+                        params: [{ chainId: '0x8F' }], // Monad mainnet chain ID
                     });
                 } catch (switchError) {
                     // Chain not added, try to add it
@@ -287,7 +287,7 @@
                         await window.ethereum.request({
                             method: 'wallet_addEthereumChain',
                             params: [{
-                                chainId: '0x279F',
+                                chainId: '0x8F',
                                 chainName: 'Monad',
                                 nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
                                 rpcUrls: [MONAD_RPC],
