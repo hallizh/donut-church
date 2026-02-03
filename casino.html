@@ -300,6 +300,11 @@
             </div>
             
             <div id="game-section" style="display: none;">
+                <div id="approval-section" style="display: none; margin-bottom: 1.5rem;">
+                    <p style="margin-bottom: 1rem;">First time? Approve $DONUT once, then bet freely:</p>
+                    <button class="btn btn-secondary" onclick="approveMax()">✅ Approve $DONUT (one-time)</button>
+                </div>
+                
                 <div class="bet-controls">
                     <div class="bet-amount">
                         <span>Bet:</span>
@@ -422,6 +427,66 @@
             
             const treasury = parseInt(treasuryResult.result, 16) / 1e18;
             document.getElementById('treasury').textContent = treasury.toLocaleString(undefined, {maximumFractionDigits: 0}) + ' 🍩';
+            
+            // Check allowance
+            await checkAllowance();
+        }
+        
+        async function checkAllowance() {
+            const allowanceData = '0xdd62ed3e' + 
+                userAddress.slice(2).toLowerCase().padStart(64, '0') +
+                CASINO_CONTRACT.slice(2).toLowerCase().padStart(64, '0');
+            
+            const result = await fetch(MONAD_RPC, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    method: 'eth_call',
+                    params: [{ to: DONUT_TOKEN, data: allowanceData }, 'latest'],
+                    id: 3
+                })
+            }).then(r => r.json());
+            
+            const allowance = parseInt(result.result, 16) / 1e18;
+            
+            // If allowance is less than 10k DONUT, show approval button
+            if (allowance < 10000) {
+                document.getElementById('approval-section').style.display = 'block';
+            } else {
+                document.getElementById('approval-section').style.display = 'none';
+            }
+        }
+        
+        async function approveMax() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Approving...';
+            
+            try {
+                // Approve max uint256
+                const maxUint = 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+                const approveData = '0x095ea7b3' + 
+                    CASINO_CONTRACT.slice(2).padStart(64, '0') + maxUint;
+                
+                await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: userAddress,
+                        to: DONUT_TOKEN,
+                        data: approveData
+                    }]
+                });
+                
+                document.getElementById('approval-section').style.display = 'none';
+                document.getElementById('result-area').innerHTML = '<div class="result win">✅ Approved! You can now bet freely.</div>';
+                
+            } catch (error) {
+                alert("Approval failed: " + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '✅ Approve $DONUT (one-time)';
+            }
         }
         
         function selectChoice(isHeads) {
