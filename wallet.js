@@ -10,12 +10,20 @@
 
   function short(addr) {
     if (!addr) return 'Not connected';
-    return 'Connected: ' + addr.slice(0, 6) + '…' + addr.slice(-4);
+    return addr.slice(0, 6) + '…' + addr.slice(-4);
   }
 
   function setStatus(text) {
     document.querySelectorAll('[data-wallet-status]').forEach((el) => {
       el.textContent = text;
+    });
+
+    // Toggle connect/disconnect UI
+    document.querySelectorAll('[data-wallet-connect]').forEach((el) => {
+      el.style.display = state.address ? 'none' : '';
+    });
+    document.querySelectorAll('[data-wallet-disconnect]').forEach((el) => {
+      el.style.display = state.address ? '' : 'none';
     });
   }
 
@@ -26,7 +34,12 @@
       else localStorage.removeItem(STORAGE_KEY);
     } catch {}
 
-    setStatus(short(state.address));
+    setStatus(state.address ? ('Connected: ' + short(state.address)) : 'Not connected');
+  }
+
+  function disconnect() {
+    // Note: dapps cannot force MetaMask to "disconnect"; we just forget locally.
+    setAddress(null);
   }
 
   async function connect() {
@@ -113,6 +126,7 @@
   window.DONUT_WALLET = {
     initBanner,
     connect,
+    disconnect,
     getAddress: () => state.address,
   };
 
