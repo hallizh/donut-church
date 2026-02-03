@@ -246,8 +246,8 @@
     </div>
 
     <script>
-        // Monad RPC
-        const MONAD_RPC = "https://testnet-rpc.monad.xyz";
+        // Monad RPC (mainnet)
+        const MONAD_RPC = "https://rpc.monad.xyz";
         const DONUT_TOKEN = "0xcCbA6082fD1E89D2d6290B260B3a258DC1207777";
         const ORACLE_API = ""; // Will be set when backend is ready
         
@@ -275,11 +275,11 @@
                 });
                 userAddress = accounts[0];
                 
-                // Try to switch to Monad testnet
+                // Try to switch to Monad mainnet
                 try {
                     await window.ethereum.request({
                         method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: '0x279F' }], // 10143 in hex
+                        params: [{ chainId: '0x279F' }], // Monad mainnet chain ID
                     });
                 } catch (switchError) {
                     // Chain not added, try to add it
@@ -288,10 +288,10 @@
                             method: 'wallet_addEthereumChain',
                             params: [{
                                 chainId: '0x279F',
-                                chainName: 'Monad Testnet',
+                                chainName: 'Monad',
                                 nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
                                 rpcUrls: [MONAD_RPC],
-                                blockExplorerUrls: ['https://testnet.monadexplorer.com']
+                                blockExplorerUrls: ['https://monadexplorer.com']
                             }]
                         });
                     }
