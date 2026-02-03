@@ -13,12 +13,6 @@
     return 'Connected: ' + addr.slice(0, 6) + '…' + addr.slice(-4);
   }
 
-  function setStatus(text) {
-    document.querySelectorAll('[data-wallet-status]').forEach((el) => {
-      el.textContent = text;
-    });
-  }
-
   function setAddress(addr) {
     state.address = addr || null;
     try {
@@ -26,40 +20,23 @@
       else localStorage.removeItem(STORAGE_KEY);
     } catch {}
 
-    setStatus(short(state.address));
+    document.querySelectorAll('[data-wallet-status]').forEach((el) => {
+      el.textContent = short(state.address);
+    });
   }
 
   async function connect() {
     if (!window.ethereum) {
       // In many in-app browsers (Telegram, etc.) MetaMask is not injected.
-      setStatus('No wallet provider (install MetaMask / use MetaMask browser)');
+      document.querySelectorAll('[data-wallet-status]').forEach((el) => {
+        el.textContent = 'No wallet provider (install MetaMask / use MetaMask browser)';
+      });
       try { alert('No wallet detected. Install MetaMask or open this site inside a wallet browser.'); } catch {}
       return null;
     }
-
-    try {
-      setStatus('Connecting…');
-
-      // If already authorized, eth_accounts should return immediately.
-      let accounts = [];
-      try {
-        accounts = await window.ethereum.request({ method: 'eth_accounts' });
-      } catch {}
-
-      if (!accounts || accounts.length === 0) {
-        accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-      }
-
-      setAddress(accounts?.[0] || null);
-      return state.address;
-    } catch (e) {
-      console.error('[DONUT_WALLET] connect error', e);
-      const msg = e?.message || String(e);
-      // Common MetaMask mobile message: "Already processing eth_requestAccounts"
-      setStatus('Wallet error: ' + msg.slice(0, 80));
-      try { alert('Wallet connection failed: ' + msg); } catch {}
-      return null;
-    }
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    setAddress(accounts?.[0] || null);
+    return state.address;
   }
 
   function initBanner() {
