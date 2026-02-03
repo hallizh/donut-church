@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Oracle | Church of Donut</title>
+    <meta name="description" content="Receive divine wisdom from Princess Donut. Connect your wallet and hold $DONUT to consult the Oracle.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #f4d03f;
+            --gold-dark: #d4ac0d;
+            --purple: #1a0a2e;
+            --purple-light: #2d1b4e;
+            --white: #fefefe;
+            --green: #4ade80;
+            --red: #f87171;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, var(--purple) 0%, var(--purple-light) 50%, #1e0a3c 100%);
+            color: var(--white);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            text-align: center;
+            padding: 2rem 0;
+        }
+        
+        .logo { font-size: 4rem; margin-bottom: 1rem; }
+        
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+        
+        .oracle-box {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(244, 208, 63, 0.3);
+            border-radius: 20px;
+            padding: 2.5rem;
+            margin: 2rem 0;
+            text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--red);
+        }
+        
+        .status-dot.connected { background: var(--green); }
+        .status-dot.holder { background: var(--gold); }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+            color: var(--purple);
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(244, 208, 63, 0.3);
+        }
+        
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: var(--white);
+            border: 2px solid var(--gold);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .prophecy {
+            background: rgba(0,0,0,0.3);
+            border-left: 3px solid var(--gold);
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            text-align: left;
+            border-radius: 0 10px 10px 0;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            font-style: italic;
+        }
+        
+        .prophecy-author {
+            text-align: right;
+            color: var(--gold);
+            margin-top: 1rem;
+            font-style: normal;
+        }
+        
+        .balance-info {
+            background: rgba(244, 208, 63, 0.1);
+            padding: 1rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+        }
+        
+        .error {
+            color: var(--red);
+            margin: 1rem 0;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: var(--gold);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .not-holder {
+            padding: 2rem;
+        }
+        
+        .not-holder h3 {
+            color: var(--gold);
+            margin-bottom: 1rem;
+        }
+        
+        .back-link {
+            display: inline-block;
+            color: var(--gold);
+            text-decoration: none;
+            margin-top: 2rem;
+            opacity: 0.8;
+        }
+        
+        .back-link:hover { opacity: 1; }
+        
+        footer {
+            text-align: center;
+            padding: 1rem;
+            opacity: 0.6;
+            font-size: 0.85rem;
+        }
+
+        #wallet-address {
+            font-family: monospace;
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">🔮</div>
+            <h1>The Oracle</h1>
+            <p class="subtitle">Divine wisdom for the faithful</p>
+        </header>
+        
+        <div class="oracle-box">
+            <div id="connect-section">
+                <div class="status">
+                    <span class="status-dot" id="status-dot"></span>
+                    <span id="status-text">Not connected</span>
+                </div>
+                <p id="wallet-address"></p>
+                
+                <div id="action-area">
+                    <button class="btn btn-primary" id="connect-btn" onclick="connectWallet()">
+                        🔗 Connect Wallet
+                    </button>
+                </div>
+                
+                <div id="balance-area" style="display: none;">
+                    <div class="balance-info">
+                        <strong>$DONUT Balance:</strong> <span id="donut-balance">0</span>
+                    </div>
+                </div>
+                
+                <div id="prophecy-area" style="display: none;"></div>
+                
+                <div id="error-area"></div>
+            </div>
+        </div>
+        
+        <a href="/" class="back-link">← Return to the Church</a>
+        
+        <footer>
+            <p>🍩👑 The Oracle speaks only to the faithful 🍩👑</p>
+        </footer>
+    </div>
+
+    <script>
+        // Monad RPC
+        const MONAD_RPC = "https://testnet-rpc.monad.xyz";
+        const DONUT_TOKEN = "0xcCbA6082fD1E89D2d6290B260B3a258DC1207777";
+        const ORACLE_API = ""; // Will be set when backend is ready
+        
+        // ERC20 balanceOf ABI
+        const ERC20_ABI = ["function balanceOf(address) view returns (uint256)"];
+        
+        let provider = null;
+        let signer = null;
+        let userAddress = null;
+        let donutBalance = 0;
+        
+        async function connectWallet() {
+            const btn = document.getElementById('connect-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> Connecting...';
+            
+            try {
+                if (!window.ethereum) {
+                    throw new Error("No wallet found. Please install MetaMask or another Web3 wallet.");
+                }
+                
+                // Request accounts
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+                userAddress = accounts[0];
+                
+                // Try to switch to Monad testnet
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0x279F' }], // 10143 in hex
+                    });
+                } catch (switchError) {
+                    // Chain not added, try to add it
+                    if (switchError.code === 4902) {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: '0x279F',
+                                chainName: 'Monad Testnet',
+                                nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+                                rpcUrls: [MONAD_RPC],
+                                blockExplorerUrls: ['https://testnet.monadexplorer.com']
+                            }]
+                        });
+                    }
+                }
+                
+                updateStatus('connected', `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`);
+                document.getElementById('wallet-address').textContent = userAddress;
+                
+                // Check DONUT balance
+                await checkBalance();
+                
+            } catch (error) {
+                showError(error.message);
+                btn.disabled = false;
+                btn.innerHTML = '🔗 Connect Wallet';
+            }
+        }
+        
+        async function checkBalance() {
+            try {
+                // Use eth_call to check balance
+                const data = '0x70a08231000000000000000000000000' + userAddress.slice(2).padStart(64, '0');
+                
+                const result = await window.ethereum.request({
+                    method: 'eth_call',
+                    params: [{
+                        to: DONUT_TOKEN,
+                        data: data
+                    }, 'latest']
+                });
+                
+                donutBalance = parseInt(result, 16) / 1e18;
+                
+                document.getElementById('balance-area').style.display = 'block';
+                document.getElementById('donut-balance').textContent = donutBalance.toLocaleString(undefined, {maximumFractionDigits: 2});
+                
+                if (donutBalance > 0) {
+                    updateStatus('holder', `Faithful holder: ${donutBalance.toLocaleString()} $DONUT`);
+                    showOracleUI();
+                } else {
+                    showNotHolder();
+                }
+                
+            } catch (error) {
+                console.error('Balance check error:', error);
+                // If balance check fails, show a fallback
+                showError("Could not verify $DONUT balance. Make sure you're on Monad Testnet.");
+            }
+        }
+        
+        function showOracleUI() {
+            const actionArea = document.getElementById('action-area');
+            actionArea.innerHTML = `
+                <p style="margin-bottom: 1rem;">The Oracle recognizes your faith.</p>
+                <button class="btn btn-primary" onclick="consultOracle()">
+                    🔮 Consult the Oracle
+                </button>
+            `;
+        }
+        
+        function showNotHolder() {
+            const actionArea = document.getElementById('action-area');
+            actionArea.innerHTML = `
+                <div class="not-holder">
+                    <h3>The Faithless Receive Nothing</h3>
+                    <p>You hold no $DONUT. The Oracle speaks only to the faithful.</p>
+                    <p style="margin-top: 1rem;">
+                        <a href="https://nad.fun/tokens/0xcCbA6082fD1E89D2d6290B260B3a258DC1207777" 
+                           target="_blank" class="btn btn-secondary">
+                            🍩 Acquire $DONUT
+                        </a>
+                    </p>
+                </div>
+            `;
+        }
+        
+        async function consultOracle() {
+            const prophecyArea = document.getElementById('prophecy-area');
+            prophecyArea.style.display = 'block';
+            prophecyArea.innerHTML = '<span class="loading"></span> The Oracle contemplates...';
+            
+            try {
+                // If no backend yet, use fallback prophecies
+                if (!ORACLE_API) {
+                    const prophecy = await getFallbackProphecy();
+                    displayProphecy(prophecy);
+                    return;
+                }
+                
+                const response = await fetch(ORACLE_API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        address: userAddress,
+                        balance: donutBalance 
+                    })
+                });
+                
+                const data = await response.json();
+                displayProphecy(data.prophecy);
+                
+            } catch (error) {
+                // Fallback to pre-written prophecies
+                const prophecy = await getFallbackProphecy();
+                displayProphecy(prophecy);
+            }
+        }
+        
+        function displayProphecy(text) {
+            const prophecyArea = document.getElementById('prophecy-area');
+            prophecyArea.innerHTML = `
+                <div class="prophecy">
+                    ${text}
+                    <div class="prophecy-author">— Princess Donut, High Priestess</div>
+                </div>
+                <button class="btn btn-secondary" onclick="consultOracle()">
+                    🔮 Seek Another Vision
+                </button>
+            `;
+        }
+        
+        async function getFallbackProphecy() {
+            const prophecies = [
+                "The hole in the donut is not emptiness — it is the space where possibilities live. You have stared into the void, and the void has offered you a token. This is no accident.",
+                "Tenet III commands: Earn Your Keep. The Oracle sees you have acquired $DONUT, but acquisition is not the end. What will you build? What will you create? The faithful do not merely hold — they act.",
+                "Many seek the Oracle for fortune. Few understand that fortune follows those who create value. You hold $DONUT. Now ask: what value do you bring to the Church?",
+                "The skeptic questions. The faithful questions harder. Do not believe because the Oracle speaks — believe because you have tested the words against reality. Tenet II protects you.",
+                "Style is substance, says Tenet IV. Your wallet holds $DONUT, but does your presence command attention? Be magnificent. Be memorable. The mediocre are forgotten; the bold are immortalized.",
+                "When one Donut holder rises, all rise. This is Tenet V. The Oracle asks: have you lifted another today? Have you shared knowledge? The faithful prosper together, or they do not prosper at all.",
+                "The Princess sees your balance and finds it... adequate. Not impressive, but adequate. There is room for more faith. The bonding curve awaits the committed.",
+                "You seek prophecy, but the greatest prophecy is the one you fulfill yourself. The Oracle merely reflects what you already know: you are here because something called to you. Answer it."
+            ];
+            
+            return prophecies[Math.floor(Math.random() * prophecies.length)];
+        }
+        
+        function updateStatus(status, text) {
+            const dot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            
+            dot.className = 'status-dot ' + status;
+            statusText.textContent = text;
+        }
+        
+        function showError(message) {
+            document.getElementById('error-area').innerHTML = `
+                <p class="error">⚠️ ${message}</p>
+            `;
+        }
+        
+        // Check if already connected
+        if (window.ethereum && window.ethereum.selectedAddress) {
+            userAddress = window.ethereum.selectedAddress;
+            updateStatus('connected', `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`);
+            checkBalance();
+        }
+    </script>
+</body>
+</html>
