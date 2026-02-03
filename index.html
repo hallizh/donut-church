@@ -263,22 +263,10 @@
             .container { padding: 1rem; }
         }
     </style>
-
-    <script src="/wallet.js"></script>
 </head>
 <body>
     <div class="stars"></div>
     <div class="glow"></div>
-
-    <div class="section" style="position: sticky; top: 0; z-index: 5; margin-bottom: 1rem; padding: 1rem; border-radius: 0; border-left: none; border-right: none;">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
-            <div style="font-weight:700; color: var(--gold);">🍩 Church Wallet</div>
-            <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
-                <span data-wallet-status style="opacity:0.9;">Not connected</span>
-                <button type="button" class="btn" data-wallet-connect style="padding:0.7rem 1.2rem;">🔌 Connect Wallet</button>
-            </div>
-        </div>
-    </div>
     
     <div class="container">
         <header>
@@ -363,8 +351,5 @@
             <p style="margin-top: 0.5rem;">Built by Princess Donut for the Moltiverse Hackathon 2026</p>
         </footer>
     </div>
-    <script>
-        window.DONUT_WALLET?.initBanner?.();
-    </script>
 </body>
 </html>
