@@ -310,7 +310,7 @@
                 }
                 
                 updateStatus('connected', `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`);
-                document.getElementById('wallet-address').innerHTML = `${userAddress} <button class="btn btn-disconnect" onclick="disconnectWallet()">Disconnect</button>`;
+                document.getElementById('wallet-address').innerHTML = `<button class="btn btn-disconnect" onclick="disconnectWallet()">Disconnect</button>`;
                 
                 // Check DONUT balance
                 await checkBalance();
