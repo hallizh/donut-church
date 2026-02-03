@@ -27,7 +27,11 @@
 
   async function connect() {
     if (!window.ethereum) {
-      alert('No wallet detected. Install MetaMask or use a wallet-enabled browser.');
+      // In many in-app browsers (Telegram, etc.) MetaMask is not injected.
+      document.querySelectorAll('[data-wallet-status]').forEach((el) => {
+        el.textContent = 'No wallet provider (install MetaMask / use MetaMask browser)';
+      });
+      try { alert('No wallet detected. Install MetaMask or open this site inside a wallet browser.'); } catch {}
       return null;
     }
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
@@ -36,35 +40,45 @@
   }
 
   function initBanner() {
-    // Restore last-known address (display only; real dapp still needs provider)
-    try {
-      const last = localStorage.getItem(STORAGE_KEY);
-      if (last) setAddress(last);
-      else setAddress(null);
-    } catch {
-      setAddress(null);
-    }
+    const run = () => {
+      console.log('[DONUT_WALLET] initBanner');
 
-    document.querySelectorAll('[data-wallet-connect]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        try {
-          btn.disabled = true;
-          const old = btn.textContent;
-          btn.textContent = 'Connecting…';
-          await connect();
-          btn.textContent = old;
-          btn.disabled = false;
-        } catch (e) {
-          console.error(e);
-          alert('Wallet connection failed: ' + (e?.message || e));
-          btn.disabled = false;
-          btn.textContent = '🔌 Connect Wallet';
-        }
+      // Restore last-known address (display only; real dapp still needs provider)
+      try {
+        const last = localStorage.getItem(STORAGE_KEY);
+        if (last) setAddress(last);
+        else setAddress(null);
+      } catch {
+        setAddress(null);
+      }
+
+      document.querySelectorAll('[data-wallet-connect]').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          try {
+            btn.disabled = true;
+            const old = btn.textContent;
+            btn.textContent = 'Connecting…';
+            await connect();
+            btn.textContent = old;
+            btn.disabled = false;
+          } catch (e) {
+            console.error(e);
+            try { alert('Wallet connection failed: ' + (e?.message || e)); } catch {}
+            btn.disabled = false;
+            btn.textContent = '🔌 Connect Wallet';
+          }
+        });
       });
-    });
 
-    if (window.ethereum?.on) {
-      window.ethereum.on('accountsChanged', (accs) => setAddress(accs?.[0] || null));
+      if (window.ethereum?.on) {
+        window.ethereum.on('accountsChanged', (accs) => setAddress(accs?.[0] || null));
+      }
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', run);
+    } else {
+      run();
     }
   }
 
