@@ -87,7 +87,4 @@
     connect,
     getAddress: () => state.address,
   };
-
-  // Auto-init on all pages (safe even if initBanner is also called explicitly)
-  try { initBanner(); } catch (e) { console.error('[DONUT_WALLET] auto-init failed', e); }
 })();
