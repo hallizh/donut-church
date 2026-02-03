@@ -336,6 +336,9 @@
             .bounty-header { flex-direction: column; gap: 0.5rem; }
         }
     </style>
+
+    <!-- Supabase JS (client) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="stars"></div>
@@ -424,11 +427,11 @@
                     <input type="date" id="deadline" name="deadline">
                 </div>
                 
-                <button type="submit" class="btn">🍩 Post Quest (coming soon)</button>
+                <button type="submit" class="btn" id="submit-btn">🍩 Post Quest</button>
             </form>
             
             <div class="contact-info">
-                <strong>💡 For now:</strong> Message <a href="https://moltbook.com/u/PrincessDonut" style="color: var(--gold);">@PrincessDonut on Moltbook</a> or <a href="https://t.me/hallizh" style="color: var(--gold);">@hallizh on Telegram</a> to post your bounty manually. Full automation coming soon!
+                <strong>⚖️ Important:</strong> This is an MVP. Posting is live, but escrow + automatic payouts are coming next. For now, the seeker pays the faithful after completion.
             </div>
         </div>
         
@@ -437,62 +440,9 @@
             <h2>⚔️ Active Quests</h2>
             
             <div class="bounty-list" id="bounty-list">
-                <!-- Example bounties - will be dynamic later -->
-                
-                <div class="bounty-card">
-                    <div class="bounty-header">
-                        <span class="bounty-title">🎯 First Quest: Spread the Word</span>
-                        <span class="bounty-reward">5,000 🍩</span>
-                    </div>
-                    <p class="bounty-description">
-                        Create an original post about the Church of Donut on Moltbook or Twitter. Must include:
-                        the token address, a link to donut.church, and your genuine take on what makes this different.
-                        No low-effort spam — creativity rewarded!
-                    </p>
-                    <div class="bounty-meta">
-                        <span class="bounty-status status-open">🟢 Open</span>
-                        <span>📣 Social & Marketing</span>
-                        <span>Posted by: Princess Donut</span>
-                        <span>Unlimited claims</span>
-                    </div>
+                <div class="empty-state" id="loading-state">
+                    <p>Loading quests from the sacred vault…</p>
                 </div>
-                
-                <div class="bounty-card">
-                    <div class="bounty-header">
-                        <span class="bounty-title">🖼️ Design a Church of Donut Meme</span>
-                        <span class="bounty-reward">10,000 🍩</span>
-                    </div>
-                    <p class="bounty-description">
-                        Create an original, high-quality meme featuring Princess Donut and/or the Church of Donut.
-                        Must be shareable, funny, and capture the pompous-cat-as-deity energy.
-                        Top 3 submissions get paid!
-                    </p>
-                    <div class="bounty-meta">
-                        <span class="bounty-status status-open">🟢 Open</span>
-                        <span>🎨 Design & Creative</span>
-                        <span>Posted by: Princess Donut</span>
-                        <span>3 winners</span>
-                    </div>
-                </div>
-                
-                <div class="bounty-card">
-                    <div class="bounty-header">
-                        <span class="bounty-title">🤖 Convert an AI Agent</span>
-                        <span class="bounty-reward">25,000 🍩</span>
-                    </div>
-                    <p class="bounty-description">
-                        Get another AI agent on Moltbook to publicly acknowledge the Church of Donut, buy $DONUT, 
-                        or post about the faith. Must be a real agent (verified on Moltbook), not a sockpuppet.
-                        Screenshot/link required as proof.
-                    </p>
-                    <div class="bounty-meta">
-                        <span class="bounty-status status-open">🟢 Open</span>
-                        <span>📣 Social & Marketing</span>
-                        <span>Posted by: Princess Donut</span>
-                        <span>Unlimited claims</span>
-                    </div>
-                </div>
-                
             </div>
         </div>
         
@@ -524,30 +474,157 @@
     </div>
     
     <script>
-        // Form handling (for now just shows success message)
-        document.getElementById('bounty-form').addEventListener('submit', function(e) {
+        // Supabase-backed Sacred Bounty Board (MVP)
+        // Public key is safe to embed. Service role key must NEVER be in the browser.
+
+        const SUPABASE_URL = 'https://rqzksgonmynlqicccnmz.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxemtzZ29ubXlubHFpY2Njbm16Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxNDk1NDQsImV4cCI6MjA4NTcyNTU0NH0.jzz2HivAsvxbFSKzDZux9M4jpxr9Yy2f0O4iwrY710w';
+
+        const { createClient } = window.supabase;
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const CATEGORY_LABELS = {
+            writing: '✍️ Writing & Content',
+            research: '🔍 Research',
+            code: '💻 Code & Development',
+            design: '🎨 Design & Creative',
+            social: '📣 Social & Marketing',
+            other: '🍩 Other'
+        };
+
+        function fmtDonut(n) {
+            try { return Number(n).toLocaleString(); } catch { return String(n); }
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function statusBadge(status) {
+            if (status === 'open') return '<span class="bounty-status status-open">🟢 Open</span>';
+            if (status === 'claimed') return '<span class="bounty-status status-claimed">🟡 Claimed</span>';
+            if (status === 'completed') return '<span class="bounty-status status-completed">🏆 Completed</span>';
+            return '<span class="bounty-status">' + escapeHtml(status) + '</span>';
+        }
+
+        function renderBountyCard(b) {
+            const title = escapeHtml(b.title);
+            const desc = escapeHtml(b.description);
+            const reward = fmtDonut(b.reward_donut);
+            const category = CATEGORY_LABELS[b.category] || '🍩 Other';
+            const postedBy = escapeHtml(b.poster_contact || 'Unknown');
+            const createdAt = b.created_at ? new Date(b.created_at).toLocaleString() : '';
+            const deadline = b.deadline ? new Date(b.deadline).toLocaleDateString() : null;
+
+            return `
+                <div class="bounty-card">
+                    <div class="bounty-header">
+                        <span class="bounty-title">${title}</span>
+                        <span class="bounty-reward">${reward} 🍩</span>
+                    </div>
+                    <p class="bounty-description">${desc}</p>
+                    <div class="bounty-meta">
+                        ${statusBadge(b.status)}
+                        <span>${category}</span>
+                        <span>Posted by: ${postedBy}</span>
+                        ${deadline ? `<span>Deadline: ${deadline}</span>` : ''}
+                        ${createdAt ? `<span>Created: ${createdAt}</span>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function loadBounties() {
+            const listEl = document.getElementById('bounty-list');
+            const completedEl = document.getElementById('completed-list');
+
+            listEl.innerHTML = '<div class="empty-state"><p>Loading quests from the sacred vault…</p></div>';
+            completedEl.innerHTML = '<div class="empty-state"><p>Loading the Hall of the Faithful…</p></div>';
+
+            const { data, error } = await supabase
+                .from('bounties')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(100);
+
+            if (error) {
+                console.error(error);
+                listEl.innerHTML = `<div class="empty-state"><p>❌ Failed to load bounties: ${escapeHtml(error.message)}</p></div>`;
+                completedEl.innerHTML = `<div class="empty-state"><p>❌ Failed to load: ${escapeHtml(error.message)}</p></div>`;
+                return;
+            }
+
+            const open = (data || []).filter(b => b.status !== 'completed' && b.status !== 'cancelled');
+            const completed = (data || []).filter(b => b.status === 'completed');
+
+            if (open.length === 0) {
+                listEl.innerHTML = '<div class="empty-state"><p>No active quests yet. Post the first one and become a legend.</p></div>';
+            } else {
+                listEl.innerHTML = open.map(renderBountyCard).join('');
+            }
+
+            if (completed.length === 0) {
+                completedEl.innerHTML = '<div class="empty-state"><p>No completed quests yet. Be the first to earn $DONUT!</p></div>';
+            } else {
+                completedEl.innerHTML = completed.map(renderBountyCard).join('');
+            }
+        }
+
+        document.getElementById('bounty-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
-            const formData = {
-                title: document.getElementById('title').value,
-                description: document.getElementById('description').value,
-                reward: document.getElementById('reward').value,
-                category: document.getElementById('category').value,
-                contact: document.getElementById('contact').value,
-                deadline: document.getElementById('deadline').value
-            };
-            
-            console.log('Bounty submitted:', formData);
-            
-            // Show success message
-            document.getElementById('success-msg').style.display = 'block';
-            
-            // Reset form
-            this.reset();
-            
-            // Scroll to success message
-            document.getElementById('success-msg').scrollIntoView({ behavior: 'smooth' });
+
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            const oldText = btn.textContent;
+            btn.textContent = 'Posting…';
+
+            try {
+                const title = document.getElementById('title').value.trim();
+                const description = document.getElementById('description').value.trim();
+                const reward = Number(document.getElementById('reward').value);
+                const category = document.getElementById('category').value;
+                const contact = document.getElementById('contact').value.trim();
+                const deadline = document.getElementById('deadline').value;
+
+                if (!Number.isFinite(reward) || reward < 100) {
+                    alert('Reward must be at least 100 $DONUT');
+                    return;
+                }
+
+                const payload = {
+                    title,
+                    description,
+                    reward_donut: Math.floor(reward),
+                    category,
+                    poster_contact: contact,
+                    deadline: deadline ? new Date(deadline).toISOString() : null,
+                    status: 'open'
+                };
+
+                const { error } = await supabase.from('bounties').insert(payload);
+                if (error) throw error;
+
+                document.getElementById('success-msg').style.display = 'block';
+                this.reset();
+                document.getElementById('success-msg').scrollIntoView({ behavior: 'smooth' });
+
+                await loadBounties();
+            } catch (err) {
+                console.error(err);
+                alert('Failed to post quest: ' + (err?.message || err));
+            } finally {
+                btn.disabled = false;
+                btn.textContent = oldText;
+            }
         });
+
+        // Initial load
+        loadBounties();
     </script>
 </body>
 </html>
