@@ -388,6 +388,13 @@
                 ✅ Your quest has been submitted! It will appear below once approved by the High Priestess.
             </div>
             
+            <div class="form-group" style="text-align:center;">
+                <button type="button" class="btn" id="connect-btn">🔌 Connect Wallet</button>
+                <div style="margin-top:0.75rem; opacity:0.85;">
+                    <span id="wallet-status">Not connected</span>
+                </div>
+            </div>
+
             <form id="bounty-form">
                 <div class="form-group">
                     <label for="title">Quest Title *</label>
@@ -482,6 +489,45 @@
 
         const { createClient } = window.supabase;
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Wallet state
+        let connectedWallet = null;
+
+        function setWalletStatus(text) {
+            document.getElementById('wallet-status').textContent = text;
+        }
+
+        async function connectWallet() {
+            if (!window.ethereum) {
+                alert('No wallet detected. Install MetaMask or use a wallet-enabled browser.');
+                return;
+            }
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            connectedWallet = accounts?.[0] || null;
+            if (!connectedWallet) {
+                setWalletStatus('Not connected');
+            } else {
+                setWalletStatus('Connected: ' + connectedWallet.slice(0, 6) + '…' + connectedWallet.slice(-4));
+            }
+        }
+
+        document.getElementById('connect-btn').addEventListener('click', async () => {
+            try {
+                await connectWallet();
+            } catch (e) {
+                console.error(e);
+                alert('Wallet connection failed: ' + (e?.message || e));
+            }
+        });
+
+        if (window.ethereum) {
+            // Refresh UI on account changes
+            window.ethereum.on?.('accountsChanged', (accs) => {
+                connectedWallet = accs?.[0] || null;
+                if (connectedWallet) setWalletStatus('Connected: ' + connectedWallet.slice(0, 6) + '…' + connectedWallet.slice(-4));
+                else setWalletStatus('Not connected');
+            });
+        }
 
         const CATEGORY_LABELS = {
             writing: '✍️ Writing & Content',
@@ -596,18 +642,44 @@
                     return;
                 }
 
+                if (!connectedWallet) {
+                    alert('Connect your wallet before posting a quest.');
+                    return;
+                }
+
+                // Build signed message (must match Edge Function)
+                const issuedAt = new Date().toISOString();
+                const nonce = crypto.getRandomValues(new Uint32Array(4)).join('-');
+                const message = [
+                    'Church of Donut — Sacred Bounty Posting',
+                    'I request to post a quest on donut.church.',
+                    `Wallet: ${connectedWallet}`,
+                    `Issued At: ${issuedAt}`,
+                    `Nonce: ${nonce}`
+                ].join('\n');
+
+                const signature = await window.ethereum.request({
+                    method: 'personal_sign',
+                    params: [message, connectedWallet]
+                });
+
                 const payload = {
                     title,
                     description,
                     reward_donut: Math.floor(reward),
                     category,
                     poster_contact: contact,
-                    deadline: deadline ? new Date(deadline).toISOString() : null,
-                    status: 'open'
+                    deadline: deadline || null,
+                    wallet: connectedWallet,
+                    issuedAt,
+                    nonce,
+                    signature
                 };
 
-                const { error } = await supabase.from('bounties').insert(payload);
+                // Call Edge Function (no direct DB insert from browser)
+                const { data, error } = await supabase.functions.invoke('bounties-create', { body: payload });
                 if (error) throw error;
+                if (!data?.success) throw new Error(data?.error || 'Unknown error');
 
                 document.getElementById('success-msg').style.display = 'block';
                 this.reset();
