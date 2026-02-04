@@ -232,12 +232,10 @@
                     <span class="status-dot" id="status-dot"></span>
                     <span id="status-text">Not connected</span>
                 </div>
-                <p id="wallet-address"></p>
+                <p id="wallet-address" style="opacity:0.85;"></p>
                 
-                <div id="action-area">
-                    <button class="btn btn-primary" id="connect-btn" onclick="connectWallet()">
-                        🔗 Connect Wallet
-                    </button>
+                <div id="action-area" style="opacity:0.9;">
+                    <p style="margin: 0;">Connect using the Church Wallet banner above.</p>
                 </div>
                 
                 <div id="balance-area" style="display: none;">
@@ -299,7 +297,7 @@
             }
 
             updateStatus('connected', `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`);
-            document.getElementById('wallet-address').innerHTML = `<button class="btn btn-disconnect" onclick="disconnectWallet()">Disconnect</button>`;
+            document.getElementById('wallet-address').textContent = `${userAddress.slice(0,6)}…${userAddress.slice(-4)}`;
 
             await checkBalance();
         }
@@ -437,9 +435,7 @@
                 document.getElementById('prophecy-area').style.display = 'none';
                 document.getElementById('error-area').innerHTML = '';
                 document.getElementById('action-area').innerHTML = `
-                    <button class="btn btn-primary" id="connect-btn" onclick="connectWallet()">
-                        🔗 Connect Wallet
-                    </button>
+                    <p style="margin: 0;">Connect using the Church Wallet banner above.</p>
                 `;
                 return;
             }
