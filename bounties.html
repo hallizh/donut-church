@@ -338,6 +338,7 @@
     </style>
 
     <!-- Supabase JS (client) -->
+    <script src="/wallet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -388,52 +389,12 @@
                 ✅ Your quest has been submitted! It will appear below once approved by the High Priestess.
             </div>
             
+            <!-- Wallet connect lives in the top banner. -->
             <div class="form-group" style="text-align:center;">
-                <button type="button" class="btn" id="connect-btn" onclick="(async()=>{try{await window.connectWallet()}catch(e){alert('Wallet error: '+(e?.message||e));}})()">🔌 Connect Wallet</button>
-                <button type="button" class="btn" id="disconnect-btn" style="display:none; padding:0.7rem 1.0rem;" onclick="(function(){ window.__DONUT_CONNECTED_WALLET=null; try{document.getElementById('wallet-status').textContent='Not connected';}catch(e){} try{document.getElementById('connect-btn').style.display='inline-block';}catch(e){} try{document.getElementById('disconnect-btn').style.display='none';}catch(e){} })()" title="Disconnect">⏏</button>
                 <div style="margin-top:0.75rem; opacity:0.85;">
                     <span id="wallet-status">Not connected</span>
                 </div>
             </div>
-
-            <script>
-                // Minimal wallet connect bootstrap (runs even if the big script below breaks)
-                (function(){
-                    function setWalletStatus(t){
-                        try{ document.getElementById('wallet-status').textContent = t; }catch(e){}
-                    }
-                    window.connectWallet = async function(){
-                        setWalletStatus('Click received…');
-                        if(!window.ethereum){
-                            setWalletStatus('No wallet provider');
-                            alert('No wallet detected.');
-                            return;
-                        }
-                        try{
-                            setWalletStatus('Connecting…');
-                            let accounts = [];
-                            try { accounts = await window.ethereum.request({ method: 'eth_accounts' }); } catch(e) {}
-                            if(!accounts || accounts.length===0){
-                                accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                            }
-                            const addr = accounts && accounts[0];
-                            if(addr){
-                                window.__DONUT_CONNECTED_WALLET = addr;
-                                setWalletStatus('Connected: '+addr.slice(0,6)+'…'+addr.slice(-4));
-                                try { document.getElementById('connect-btn').style.display = 'none'; } catch(e) {}
-                                try { document.getElementById('disconnect-btn').style.display = 'inline-block'; } catch(e) {}
-                            } else {
-                                setWalletStatus('Not connected');
-                                try { document.getElementById('connect-btn').style.display = 'inline-block'; } catch(e) {}
-                                try { document.getElementById('disconnect-btn').style.display = 'none'; } catch(e) {}
-                            }
-                        } catch(e){
-                            setWalletStatus('Wallet error: '+String(e && e.message || e).slice(0,80));
-                            throw e;
-                        }
-                    };
-                })();
-            </script>
 
             <form id="bounty-form">
                 <div class="form-group">
@@ -537,63 +498,27 @@
         }
 
         // Wallet state
-        let connectedWallet = null;
+        let connectedWallet = window.DONUT_WALLET?.getAddress?.() || null;
         let walletConnectInFlight = false;
 
-        // If the minimal bootstrap connected, adopt it.
-        if (window.__DONUT_CONNECTED_WALLET && !connectedWallet) {
-            connectedWallet = window.__DONUT_CONNECTED_WALLET;
-            document.getElementById('wallet-status').textContent = 'Connected: ' + connectedWallet.slice(0, 6) + '…' + connectedWallet.slice(-4);
+        // Reflect banner state into local UI
+        function syncWalletFromBanner() {
+            const addr = window.DONUT_WALLET?.getAddress?.() || null;
+            connectedWallet = addr;
+            if (connectedWallet) {
+                document.getElementById('wallet-status').textContent = 'Connected: ' + connectedWallet.slice(0, 6) + '…' + connectedWallet.slice(-4);
+            } else {
+                document.getElementById('wallet-status').textContent = 'Not connected';
+            }
         }
+        window.addEventListener('donut:wallet', () => syncWalletFromBanner());
+        syncWalletFromBanner();
 
         function setWalletStatus(text) {
             document.getElementById('wallet-status').textContent = text;
         }
 
-        async function connectWallet() {
-            // Immediate visible confirmation that the click reached JS
-            setWalletStatus('Click received…');
-
-            if (!window.ethereum) {
-                setWalletStatus('No wallet provider');
-                alert('No wallet detected. Install MetaMask or use a wallet-enabled browser.');
-                return;
-            }
-            if (walletConnectInFlight) {
-                alert('Wallet connect already pending. Please check MetaMask and approve the request.');
-                return;
-            }
-
-            walletConnectInFlight = true;
-            const btn = document.getElementById('connect-btn');
-            const old = btn?.textContent;
-            if (btn) { btn.disabled = true; btn.textContent = 'Connecting…'; }
-
-            try {
-                let accounts = [];
-                try { accounts = await window.ethereum.request({ method: 'eth_accounts' }); } catch {}
-                if (!accounts || accounts.length === 0) {
-                    accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                }
-
-                connectedWallet = accounts?.[0] || null;
-                if (!connectedWallet) {
-                    setWalletStatus('Not connected');
-                } else {
-                    setWalletStatus('Connected: ' + connectedWallet.slice(0, 6) + '…' + connectedWallet.slice(-4));
-                }
-            } catch (e) {
-                console.error(e);
-                setWalletStatus('Wallet error: ' + String(e?.message || e).slice(0, 80));
-                throw e;
-            } finally {
-                walletConnectInFlight = false;
-                if (btn) { btn.disabled = false; btn.textContent = old || '🔌 Connect Wallet'; }
-            }
-        }
-
-        // Make it callable from inline onclick in mobile webviews
-        window.connectWallet = connectWallet;
+        // (connect happens in the top banner via DONUT_WALLET)
 
         // connect handled via inline onclick on the button (more reliable in mobile webviews)
 
@@ -723,6 +648,8 @@
                     return;
                 }
 
+                // Pull from shared wallet banner
+                connectedWallet = window.DONUT_WALLET?.getAddress?.() || connectedWallet;
                 if (!connectedWallet) {
                     alert('Connect your wallet before posting a quest.');
                     return;

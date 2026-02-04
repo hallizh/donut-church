@@ -266,6 +266,8 @@
             font-size: 0.85rem;
         }
     </style>
+
+    <script src="/wallet.js"></script>
 </head>
 <body>
     <div class="container">
@@ -354,6 +356,36 @@
         let pendingBets = [];
         let walletConnectInFlight = false;
         
+        async function onWalletConnected(addr) {
+            userAddress = addr;
+
+            // Switch to Monad
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: CHAIN_ID }]
+                });
+            } catch (e) {
+                if (e.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: CHAIN_ID,
+                            chainName: 'Monad',
+                            nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+                            rpcUrls: [MONAD_RPC]
+                        }]
+                    });
+                }
+            }
+
+            document.getElementById('connect-section').style.display = 'none';
+            document.getElementById('game-section').style.display = 'block';
+
+            await updateBalances();
+            checkPendingBets();
+        }
+
         async function connectWallet() {
             if (walletConnectInFlight) {
                 alert('Wallet connect already pending. Please check MetaMask.');
@@ -366,43 +398,9 @@
             if (btn) { btn.disabled = true; btn.textContent = 'Connecting…'; }
 
             try {
-                if (!window.ethereum) {
-                    alert("Please install MetaMask or another Web3 wallet");
-                    return;
-                }
-
-                let accounts = [];
-                try { accounts = await window.ethereum.request({ method: 'eth_accounts' }); } catch {}
-                if (!accounts || accounts.length === 0) {
-                    accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                }
-                userAddress = accounts[0];
-                
-                // Switch to Monad
-                try {
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: CHAIN_ID }]
-                    });
-                } catch (e) {
-                    if (e.code === 4902) {
-                        await window.ethereum.request({
-                            method: 'wallet_addEthereumChain',
-                            params: [{
-                                chainId: CHAIN_ID,
-                                chainName: 'Monad',
-                                nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-                                rpcUrls: [MONAD_RPC]
-                            }]
-                        });
-                    }
-                }
-                
-                document.getElementById('connect-section').style.display = 'none';
-                document.getElementById('game-section').style.display = 'block';
-                
-                await updateBalances();
-                checkPendingBets();
+                const addr = await window.DONUT_WALLET.ensureConnected();
+                if (!addr) return;
+                await onWalletConnected(addr);
                 
             } catch (error) {
                 console.error(error);
@@ -412,6 +410,14 @@
                 if (btn) { btn.disabled = false; btn.textContent = old || 'Connect Wallet'; }
             }
         }
+
+        // Auto-unlock UI if user connects via the top banner
+        window.addEventListener('donut:wallet', async (ev) => {
+            const addr = ev?.detail?.address;
+            if (addr && !document.getElementById('game-section')?.style?.display || document.getElementById('game-section')?.style?.display === 'none') {
+                try { await onWalletConnected(addr); } catch (e) { console.error(e); }
+            }
+        });
         
         async function updateBalances() {
             // Get user DONUT balance

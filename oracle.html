@@ -215,6 +215,8 @@
             opacity: 0.7;
         }
     </style>
+
+    <script src="/wallet.js"></script>
 </head>
 <body>
     <div class="container">
@@ -272,6 +274,36 @@
         let donutBalance = 0;
         let walletConnectInFlight = false;
         
+        async function onWalletConnected(addr) {
+            userAddress = addr;
+
+            // Try to switch to Monad mainnet
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x8F' }],
+                });
+            } catch (switchError) {
+                if (switchError.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: '0x8F',
+                            chainName: 'Monad',
+                            nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+                            rpcUrls: [MONAD_RPC],
+                            blockExplorerUrls: ['https://monadexplorer.com']
+                        }]
+                    });
+                }
+            }
+
+            updateStatus('connected', `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`);
+            document.getElementById('wallet-address').innerHTML = `<button class="btn btn-disconnect" onclick="disconnectWallet()">Disconnect</button>`;
+
+            await checkBalance();
+        }
+
         async function connectWallet() {
             const btn = document.getElementById('connect-btn');
             if (walletConnectInFlight) {
@@ -284,45 +316,9 @@
             btn.innerHTML = '<span class="loading"></span> Connecting...';
             
             try {
-                if (!window.ethereum) {
-                    throw new Error("No wallet found. Please install MetaMask or another Web3 wallet.");
-                }
-
-                // If already authorized, avoid triggering the MetaMask permission flow twice.
-                let accounts = [];
-                try { accounts = await window.ethereum.request({ method: 'eth_accounts' }); } catch {}
-                if (!accounts || accounts.length === 0) {
-                    accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                }
-                userAddress = accounts[0];
-                
-                // Try to switch to Monad mainnet
-                try {
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: '0x8F' }], // Monad mainnet chain ID
-                    });
-                } catch (switchError) {
-                    // Chain not added, try to add it
-                    if (switchError.code === 4902) {
-                        await window.ethereum.request({
-                            method: 'wallet_addEthereumChain',
-                            params: [{
-                                chainId: '0x8F',
-                                chainName: 'Monad',
-                                nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-                                rpcUrls: [MONAD_RPC],
-                                blockExplorerUrls: ['https://monadexplorer.com']
-                            }]
-                        });
-                    }
-                }
-                
-                updateStatus('connected', `Connected: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`);
-                document.getElementById('wallet-address').innerHTML = `<button class="btn btn-disconnect" onclick="disconnectWallet()">Disconnect</button>`;
-                
-                // Check DONUT balance
-                await checkBalance();
+                const addr = await window.DONUT_WALLET.ensureConnected();
+                if (!addr) throw new Error('No wallet address');
+                await onWalletConnected(addr);
                 
             } catch (error) {
                 showError(error.message);
@@ -427,6 +423,14 @@
             }
         }
         
+        // Auto-update UI if user connects via the top banner
+        window.addEventListener('donut:wallet', async (ev) => {
+            const addr = ev?.detail?.address;
+            if (addr && addr !== userAddress) {
+                try { await onWalletConnected(addr); } catch (e) { console.error(e); }
+            }
+        });
+
         function displayProphecy(text) {
             const prophecyArea = document.getElementById('prophecy-area');
             prophecyArea.innerHTML = `
