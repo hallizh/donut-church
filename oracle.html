@@ -426,6 +426,24 @@
         // Auto-update UI if user connects via the top banner
         window.addEventListener('donut:wallet', async (ev) => {
             const addr = ev?.detail?.address;
+
+            // Disconnected: reset UI to initial state.
+            if (!addr) {
+                userAddress = null;
+                donutBalance = 0;
+                updateStatus('disconnected', 'Not connected');
+                document.getElementById('wallet-address').textContent = '';
+                document.getElementById('balance-area').style.display = 'none';
+                document.getElementById('prophecy-area').style.display = 'none';
+                document.getElementById('error-area').innerHTML = '';
+                document.getElementById('action-area').innerHTML = `
+                    <button class="btn btn-primary" id="connect-btn" onclick="connectWallet()">
+                        🔗 Connect Wallet
+                    </button>
+                `;
+                return;
+            }
+
             if (addr && addr !== userAddress) {
                 try { await onWalletConnected(addr); } catch (e) { console.error(e); }
             }

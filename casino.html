@@ -414,7 +414,23 @@
         // Auto-unlock UI if user connects via the top banner
         window.addEventListener('donut:wallet', async (ev) => {
             const addr = ev?.detail?.address;
-            if (addr && !document.getElementById('game-section')?.style?.display || document.getElementById('game-section')?.style?.display === 'none') {
+
+            // Disconnected: lock the game UI and clear cached address.
+            if (!addr) {
+                userAddress = null;
+                selectedChoice = null;
+                pendingBets = [];
+                try { document.getElementById('game-section').style.display = 'none'; } catch {}
+                try { document.getElementById('connect-section').style.display = 'block'; } catch {}
+                try { document.getElementById('balance').textContent = '--'; } catch {}
+                try { document.getElementById('treasury').textContent = '--'; } catch {}
+                try { document.getElementById('result-area').innerHTML = ''; } catch {}
+                try { document.getElementById('bet-btn').disabled = true; } catch {}
+                return;
+            }
+
+            // Connected via banner: unlock UI
+            if (addr && (!document.getElementById('game-section')?.style?.display || document.getElementById('game-section')?.style?.display === 'none')) {
                 try { await onWalletConnected(addr); } catch (e) { console.error(e); }
             }
         });
