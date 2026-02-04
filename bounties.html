@@ -395,6 +395,41 @@
                 </div>
             </div>
 
+            <script>
+                // Minimal wallet connect bootstrap (runs even if the big script below breaks)
+                (function(){
+                    function setWalletStatus(t){
+                        try{ document.getElementById('wallet-status').textContent = t; }catch(e){}
+                    }
+                    window.connectWallet = async function(){
+                        setWalletStatus('Click received…');
+                        if(!window.ethereum){
+                            setWalletStatus('No wallet provider');
+                            alert('No wallet detected.');
+                            return;
+                        }
+                        try{
+                            setWalletStatus('Connecting…');
+                            let accounts = [];
+                            try { accounts = await window.ethereum.request({ method: 'eth_accounts' }); } catch(e) {}
+                            if(!accounts || accounts.length===0){
+                                accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                            }
+                            const addr = accounts && accounts[0];
+                            if(addr){
+                                window.__DONUT_CONNECTED_WALLET = addr;
+                                setWalletStatus('Connected: '+addr.slice(0,6)+'…'+addr.slice(-4));
+                            } else {
+                                setWalletStatus('Not connected');
+                            }
+                        } catch(e){
+                            setWalletStatus('Wallet error: '+String(e && e.message || e).slice(0,80));
+                            throw e;
+                        }
+                    };
+                })();
+            </script>
+
             <form id="bounty-form">
                 <div class="form-group">
                     <label for="title">Quest Title *</label>
@@ -499,6 +534,12 @@
         // Wallet state
         let connectedWallet = null;
         let walletConnectInFlight = false;
+
+        // If the minimal bootstrap connected, adopt it.
+        if (window.__DONUT_CONNECTED_WALLET && !connectedWallet) {
+            connectedWallet = window.__DONUT_CONNECTED_WALLET;
+            document.getElementById('wallet-status').textContent = 'Connected: ' + connectedWallet.slice(0, 6) + '…' + connectedWallet.slice(-4);
+        }
 
         function setWalletStatus(text) {
             document.getElementById('wallet-status').textContent = text;
