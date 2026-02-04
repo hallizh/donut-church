@@ -390,6 +390,7 @@
             
             <div class="form-group" style="text-align:center;">
                 <button type="button" class="btn" id="connect-btn" onclick="(async()=>{try{await window.connectWallet()}catch(e){alert('Wallet error: '+(e?.message||e));}})()">🔌 Connect Wallet</button>
+                <button type="button" class="btn" id="disconnect-btn" style="display:none; padding:0.7rem 1.0rem;" onclick="(function(){ window.__DONUT_CONNECTED_WALLET=null; try{document.getElementById('wallet-status').textContent='Not connected';}catch(e){} try{document.getElementById('connect-btn').style.display='inline-block';}catch(e){} try{document.getElementById('disconnect-btn').style.display='none';}catch(e){} })()" title="Disconnect">⏏</button>
                 <div style="margin-top:0.75rem; opacity:0.85;">
                     <span id="wallet-status">Not connected</span>
                 </div>
@@ -419,8 +420,12 @@
                             if(addr){
                                 window.__DONUT_CONNECTED_WALLET = addr;
                                 setWalletStatus('Connected: '+addr.slice(0,6)+'…'+addr.slice(-4));
+                                try { document.getElementById('connect-btn').style.display = 'none'; } catch(e) {}
+                                try { document.getElementById('disconnect-btn').style.display = 'inline-block'; } catch(e) {}
                             } else {
                                 setWalletStatus('Not connected');
+                                try { document.getElementById('connect-btn').style.display = 'inline-block'; } catch(e) {}
+                                try { document.getElementById('disconnect-btn').style.display = 'none'; } catch(e) {}
                             }
                         } catch(e){
                             setWalletStatus('Wallet error: '+String(e && e.message || e).slice(0,80));
